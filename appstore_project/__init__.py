@@ -1,0 +1,3 @@
+"""
+AppStore Project package initialization.
+"""

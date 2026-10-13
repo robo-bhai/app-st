@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Hadi88 Apps Admin{% endblock %}
+
+{% block branding %}
+<div id="site-name" style="display: flex; align-items: center; gap: 8px;">
+    <a href="{% url 'admin:index' %}" style="color: #fbbf24; font-weight: 800; font-size: 1.15rem; text-decoration: none;">
+        🛡️ Hadi88 Apps Administration
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<div style="float: right; margin-right: 15px; margin-top: 10px; font-size: 0.85rem;">
+    <a href="/admin/manage/" style="color: #fbbf24; font-weight: 700; margin-right: 18px; text-decoration: none;">⚡ Custom Store Manager</a>
+    <a href="/" target="_blank" style="color: #e5e7eb; text-decoration: none;">🌐 Public Store ↗</a>
+</div>
+{% endblock %}

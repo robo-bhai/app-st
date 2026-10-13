@@ -1,0 +1,426 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Admin Management Portal - Hadi88 Apps (/admin/manage/){% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6">
+
+  <!-- Top Header with Admin Info, Export & Logout -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Secured Administrator Portal · Route: /admin/manage/</span>
+      </div>
+      <h1 class="text-xl sm:text-2xl font-display font-extrabold text-white mt-1">Store Operations & Application Control</h1>
+      <p class="text-xs text-stone-400 mt-0.5">
+        Logged in as <span class="text-amber-300 font-semibold">{{ request.user.username }}</span>. Full oversight of catalog, client demands, and Google Drive backups.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+      <a href="{% url 'admin_export_catalog_json' %}" class="px-3.5 py-2 rounded-xl glass-panel text-amber-300 hover:text-amber-200 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Export Catalog JSON</span>
+      </a>
+
+      <a href="{% url 'app_catalog' %}" class="px-3.5 py-2 rounded-xl glass-panel text-stone-300 hover:text-white border border-stone-700 text-xs font-semibold">
+        View Public Store
+      </a>
+
+      <a href="{% url 'admin_logout' %}" class="px-3.5 py-2 rounded-xl bg-red-950/40 text-red-300 hover:bg-red-900/60 border border-red-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Grid -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-2.5 sm:gap-4">
+    <div class="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15">
+      <div class="text-[9px] sm:text-xs text-stone-400 uppercase font-semibold">Total Downloads</div>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono mt-1">{{ stats.total_downloads }}</div>
+      <div class="text-[9px] text-stone-500 mt-0.5">Global APK installs</div>
+    </div>
+
+    <div class="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15">
+      <div class="text-[9px] sm:text-xs text-stone-400 uppercase font-semibold">Live Published</div>
+      <div class="text-lg sm:text-2xl font-bold text-emerald-400 font-mono mt-1">{{ stats.published_apps }}</div>
+      <div class="text-[9px] text-stone-500 mt-0.5">Visible to users</div>
+    </div>
+
+    <div class="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15">
+      <div class="text-[9px] sm:text-xs text-stone-400 uppercase font-semibold">Draft / Hidden</div>
+      <div class="text-lg sm:text-2xl font-bold text-amber-500 font-mono mt-1">{{ stats.draft_apps }}</div>
+      <div class="text-[9px] text-stone-500 mt-0.5">Under maintenance</div>
+    </div>
+
+    <div class="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15">
+      <div class="text-[9px] sm:text-xs text-stone-400 uppercase font-semibold">Client Demands</div>
+      <div class="text-lg sm:text-2xl font-bold text-amber-300 font-mono mt-1">{{ stats.pending_demands }} <span class="text-xs text-stone-400 font-normal">pending</span></div>
+      <div class="text-[9px] text-stone-500 mt-0.5">{{ stats.total_demands }} total inquiries</div>
+    </div>
+
+    <div class="glass-panel rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/15 col-span-2 md:col-span-1">
+      <div class="text-[9px] sm:text-xs text-stone-400 uppercase font-semibold">Avg Store Rating</div>
+      <div class="text-lg sm:text-2xl font-bold text-amber-400 font-mono mt-1">★ {{ stats.avg_rating }}</div>
+      <div class="text-[9px] text-stone-500 mt-0.5">Across catalog</div>
+    </div>
+  </div>
+
+  <!-- Google Drive Backup & Persistence Status Widget -->
+  <div class="glass-panel rounded-2xl p-3.5 sm:p-4 border border-emerald-500/20 bg-emerald-950/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+    <div class="flex items-center gap-2.5">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+      <div>
+        <div class="font-bold text-white flex items-center gap-1.5">
+          <span>Google Drive Cloud Persistence Engine: Active</span>
+          <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-mono">gdrive:AppStoreBackup</span>
+        </div>
+        <p class="text-[11px] text-stone-300 mt-0.5">
+          Automatic 5-minute periodic sync enabled. On workflow shutdown, SQLite WAL is checkpointed and pushed directly to Google Drive.
+        </p>
+      </div>
+    </div>
+    <div class="text-[10px] text-stone-400 font-mono shrink-0">
+      Auto-Sync: Every 5 Mins &amp; On Close
+    </div>
+  </div>
+
+  <!-- Publish Application Form Section -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Publish New Mobile Application</span>
+        </h2>
+        <p class="text-[11px] text-stone-400">Upload APK binary file and set metadata for instant public release.</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'admin_publish_app' %}" enctype="multipart/form-data" class="space-y-4">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">App Title</label>
+          {{ upload_form.app_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">Package Slug / Unique ID</label>
+          {{ upload_form.package_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">Developer / Studio Name</label>
+          {{ upload_form.developer_name }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">Category</label>
+          {{ upload_form.category }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">Version Number</label>
+          {{ upload_form.version }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">File Size (e.g. 35 MB)</label>
+          {{ upload_form.file_size }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">App Icon (Square)</label>
+          {{ upload_form.app_icon }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">APK Binary Package (.apk)</label>
+          {{ upload_form.apk_file }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">Featured in Carousel</label>
+          <div class="mt-2 flex items-center gap-2 text-stone-300">
+            {{ upload_form.is_featured }}
+            <span class="text-xs">Show in Hero Carousel</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs text-stone-300 font-semibold mb-1">App Description &amp; Highlights</label>
+        {{ upload_form.description }}
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Publish Application to Store</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Client On-Demand App Requests Section -->
+  <div class="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-500/20 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div>
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Client App Demands &amp; Custom Requests</span>
+        </h2>
+        <p class="text-[11px] text-stone-400">Review incoming specifications, update statuses, or communicate with clients.</p>
+      </div>
+      <div class="text-[10px] text-stone-400 font-mono">
+        Total Requests: <span class="text-amber-300 font-bold">{{ demands.count }}</span>
+      </div>
+    </div>
+
+    <div class="space-y-3">
+      {% for demand in demands %}
+      <div class="glass-panel rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-amber-500/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+        <div class="space-y-1.5 flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="font-bold text-white text-xs sm:text-sm">{{ demand.app_title }}</span>
+            <span class="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-semibold">{{ demand.platform }}</span>
+            <span class="text-[9px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded">{{ demand.category }}</span>
+            <span class="text-[9px] text-stone-400 font-mono">{{ demand.created_at|date:"M d, Y" }}</span>
+          </div>
+
+          <div class="text-[11px] text-stone-300 flex flex-wrap items-center gap-2">
+            <span>By <strong class="text-white">{{ demand.user_name }}</strong></span>
+            <span>·</span>
+            <a href="mailto:{{ demand.email }}" class="text-amber-400 hover:underline">{{ demand.email }}</a>
+            {% if demand.contact_handle %}
+              <span>·</span>
+              <span class="text-stone-400">{{ demand.contact_method }}: <span class="text-stone-200">{{ demand.contact_handle }}</span></span>
+            {% endif %}
+            {% if demand.budget %}
+              <span>·</span>
+              <span class="text-emerald-400 font-mono">{{ demand.budget }}</span>
+            {% endif %}
+          </div>
+
+          <p class="text-xs text-stone-300 leading-relaxed bg-[#140e0b]/60 p-2.5 rounded-lg border border-amber-500/10">
+            {{ demand.requirements }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto justify-end">
+          <!-- Status Select Form -->
+          <form method="POST" action="{% url 'admin_update_demand_status' demand.pk %}">
+            {% csrf_token %}
+            <select name="status" onchange="this.form.submit()" class="bg-[#18120e] text-xs text-amber-300 font-semibold rounded-lg px-2.5 py-1.5 border border-amber-500/30 focus:outline-none focus:border-amber-400">
+              <option value="Pending" {% if demand.status == 'Pending' %}selected{% endif %}>⏳ Pending</option>
+              <option value="In Review" {% if demand.status == 'In Review' %}selected{% endif %}>🔍 In Review</option>
+              <option value="Approved" {% if demand.status == 'Approved' %}selected{% endif %}>✅ Approved</option>
+              <option value="In Development" {% if demand.status == 'In Development' %}selected{% endif %}>⚙️ In Development</option>
+              <option value="Rejected" {% if demand.status == 'Rejected' %}selected{% endif %}>❌ Rejected</option>
+            </select>
+          </form>
+
+          <!-- Contact Client Quick Actions -->
+          {% if demand.contact_method == 'WhatsApp' and demand.contact_handle %}
+            <a href="https://wa.me/{{ demand.contact_handle|cut:' '|cut:'+' }}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-emerald-950/40 text-emerald-300 border border-emerald-500/30 text-xs hover:bg-emerald-900/60 font-semibold">
+              WhatsApp
+            </a>
+          {% elif demand.contact_method == 'Telegram' and demand.contact_handle %}
+            <a href="https://t.me/{{ demand.contact_handle|cut:'@' }}" target="_blank" class="px-2.5 py-1.5 rounded-lg bg-sky-950/40 text-sky-300 border border-sky-500/30 text-xs hover:bg-sky-900/60 font-semibold">
+              Telegram
+            </a>
+          {% else %}
+            <a href="mailto:{{ demand.email }}?subject=Update%20regarding%20your%20app%20demand:%20{{ demand.app_title }}" class="px-2.5 py-1.5 rounded-lg bg-stone-800 text-stone-200 border border-stone-700 text-xs hover:bg-stone-700 font-semibold">
+              Email
+            </a>
+          {% endif %}
+
+          <!-- Delete Demand Form -->
+          <form method="POST" action="{% url 'admin_delete_demand' demand.pk %}" onsubmit="return confirm('Delete this custom app request?');">
+            {% csrf_token %}
+            <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-red-950/40 text-red-400 border border-red-500/30 text-xs hover:bg-red-900/60 transition-colors">
+              Delete
+            </button>
+          </form>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-xs text-stone-400 py-6 text-center border border-dashed border-amber-500/20 rounded-xl">
+        No inbound client app requests submitted yet.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Applications Inventory & Filtering -->
+  <div class="space-y-3">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+          <svg class="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Applications Inventory ({{ apps.count }} Total)</span>
+        </h2>
+        <p class="text-[11px] text-stone-400">Live controls: Toggle public visibility, hero showcase, and APK binaries.</p>
+      </div>
+
+      <!-- Filters & Search Form -->
+      <form method="GET" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search apps..." class="bg-[#18120e] text-xs text-white rounded-xl px-3 py-1.5 border border-amber-500/30 focus:outline-none focus:border-amber-400 w-36 sm:w-44" />
+        
+        <select name="category" onchange="this.form.submit()" class="bg-[#18120e] text-xs text-stone-300 rounded-xl px-2.5 py-1.5 border border-amber-500/30 focus:outline-none">
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+
+        <select name="status" onchange="this.form.submit()" class="bg-[#18120e] text-xs text-stone-300 rounded-xl px-2.5 py-1.5 border border-amber-500/30 focus:outline-none">
+          <option value="All" {% if current_status == 'All' %}selected{% endif %}>All Status</option>
+          <option value="Published" {% if current_status == 'Published' %}selected{% endif %}>Published</option>
+          <option value="Draft" {% if current_status == 'Draft' %}selected{% endif %}>Drafts</option>
+          <option value="Featured" {% if current_status == 'Featured' %}selected{% endif %}>Featured</option>
+        </select>
+      </form>
+    </div>
+
+    <!-- Bulk Actions Form Wrapper -->
+    <form method="POST" action="{% url 'admin_bulk_action' %}" id="bulkForm">
+      {% csrf_token %}
+
+      <div class="glass-panel rounded-xl p-2.5 border border-amber-500/20 mb-2 flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2">
+          <span class="text-stone-400 font-semibold">Bulk Actions:</span>
+          <select name="action" class="bg-[#18120e] text-xs text-amber-300 rounded-lg px-2 py-1 border border-amber-500/30">
+            <option value="publish">Mark Selected as Published</option>
+            <option value="unpublish">Mark Selected as Draft (Hide)</option>
+            <option value="delete">Delete Selected</option>
+          </select>
+          <button type="submit" onclick="return confirm('Execute selected bulk action?');" class="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-semibold">
+            Apply
+          </button>
+        </div>
+        <div class="text-[10px] text-stone-400 hidden sm:block">
+          Select checkboxes to execute batch updates
+        </div>
+      </div>
+
+      <!-- Desktop Inventory Table -->
+      <div class="glass-panel rounded-2xl overflow-hidden border border-amber-500/20 hidden md:block">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-[#18120e] text-stone-400 border-b border-amber-500/15">
+            <tr>
+              <th class="p-3 w-8">
+                <input type="checkbox" onclick="document.querySelectorAll('.app-checkbox').forEach(c => c.checked = this.checked)" />
+              </th>
+              <th class="p-3">Application</th>
+              <th class="p-3">Category</th>
+              <th class="p-3">Version &amp; Size</th>
+              <th class="p-3">Downloads</th>
+              <th class="p-3">Visibility</th>
+              <th class="p-3">Featured</th>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-amber-500/10">
+            {% for app in apps %}
+            <tr class="hover:bg-amber-500/5 transition-colors">
+              <td class="p-3">
+                <input type="checkbox" name="selected_apps" value="{{ app.id }}" class="app-checkbox" />
+              </td>
+              <td class="p-3">
+                <div class="flex items-center gap-2.5">
+                  <img src="{{ app.safe_icon_url }}" alt="{{ app.app_name }}" onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed={{ app.app_name|urlencode }}&backgroundColor=1f140e';" class="w-8 h-8 rounded-lg object-cover bg-stone-900 border border-amber-500/20 shrink-0">
+                  <div>
+                    <div class="font-bold text-white">{{ app.app_name }}</div>
+                    <div class="text-[10px] text-stone-400 font-mono">{{ app.package_name }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-3">
+                <span class="px-2 py-0.5 rounded bg-stone-800 text-stone-300 text-[10px]">{{ app.category }}</span>
+              </td>
+              <td class="p-3 font-mono text-stone-300">
+                <div>v{{ app.version }}</div>
+                <div class="text-[10px] text-stone-500">{{ app.file_size }}</div>
+              </td>
+              <td class="p-3 font-mono text-amber-400 font-bold">
+                {{ app.downloads_count }}
+              </td>
+              <td class="p-3">
+                <a href="{% url 'admin_toggle_publish' app.pk %}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors {% if app.is_published %}bg-emerald-950/50 text-emerald-300 border-emerald-500/40 hover:bg-emerald-900/60{% else %}bg-amber-950/50 text-amber-300 border-amber-500/40 hover:bg-amber-900/60{% endif %}" title="Click to toggle publish status">
+                  <span class="w-1.5 h-1.5 rounded-full {% if app.is_published %}bg-emerald-400{% else %}bg-amber-400{% endif %}"></span>
+                  <span>{% if app.is_published %}Published (Live){% else %}Draft (Hidden){% endif %}</span>
+                </a>
+              </td>
+              <td class="p-3">
+                <a href="{% url 'admin_toggle_featured' app.pk %}" class="inline-flex items-center gap-1 text-[11px] font-semibold {% if app.is_featured %}text-amber-400 font-bold{% else %}text-stone-500 hover:text-stone-300{% endif %}" title="Click to toggle featured carousel">
+                  <span>{% if app.is_featured %}★ Featured{% else %}☆ Normal{% endif %}</span>
+                </a>
+              </td>
+              <td class="p-3 text-right">
+                <div class="flex items-center justify-end gap-2">
+                  <a href="{% url 'download_apk' app.package_name %}" class="text-amber-400 hover:text-amber-300 text-xs" title="Download APK">
+                    Download
+                  </a>
+                  <span class="text-stone-600">|</span>
+                  <a href="{% url 'admin_delete_app' app.pk %}" onclick="return confirm('Delete {{ app.app_name }} permanently?');" class="text-red-400 hover:text-red-300 text-xs">
+                    Delete
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="p-6 text-center text-stone-400">
+                No applications matching filter criteria.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Inventory Cards (Touch Friendly, Small Fonts & Icons) -->
+      <div class="grid grid-cols-1 gap-2.5 md:hidden">
+        {% for app in apps %}
+        <div class="glass-panel rounded-xl p-3 border border-amber-500/15 space-y-2">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" name="selected_apps" value="{{ app.id }}" class="app-checkbox" />
+              <img src="{{ app.safe_icon_url }}" alt="{{ app.app_name }}" onerror="this.onerror=null; this.src='https://api.dicebear.com/7.x/identicon/svg?seed={{ app.app_name|urlencode }}&backgroundColor=1f140e';" class="w-7 h-7 rounded-lg object-cover bg-stone-900 border border-amber-500/20 shrink-0">
+              <div>
+                <div class="font-bold text-white text-xs">{{ app.app_name }}</div>
+                <div class="text-[9px] text-stone-400 font-mono">{{ app.package_name }}</div>
+              </div>
+            </div>
+            <span class="text-[9px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded">{{ app.category }}</span>
+          </div>
+
+          <div class="flex items-center justify-between text-[10px] text-stone-400 font-mono pt-1 border-t border-amber-500/10">
+            <span>v{{ app.version }} · {{ app.file_size }}</span>
+            <span class="text-amber-400 font-bold">{{ app.downloads_count }} installs</span>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-1">
+            <div class="flex items-center gap-1.5">
+              <a href="{% url 'admin_toggle_publish' app.pk %}" class="px-2 py-0.5 rounded text-[9px] font-bold border {% if app.is_published %}bg-emerald-950/40 text-emerald-300 border-emerald-500/30{% else %}bg-amber-950/40 text-amber-300 border-amber-500/30{% endif %}">
+                {% if app.is_published %}Live{% else %}Draft{% endif %}
+              </a>
+
+              <a href="{% url 'admin_toggle_featured' app.pk %}" class="px-2 py-0.5 rounded text-[9px] font-bold border {% if app.is_featured %}bg-amber-500/20 text-amber-300 border-amber-500/40{% else %}bg-stone-800 text-stone-400 border-stone-700{% endif %}">
+                ★
+              </a>
+            </div>
+
+            <div class="flex items-center gap-2 text-xs">
+              <a href="{% url 'download_apk' app.package_name %}" class="text-amber-400 text-[10px]">APK</a>
+              <a href="{% url 'admin_delete_app' app.pk %}" onclick="return confirm('Delete app?');" class="text-red-400 text-[10px]">Delete</a>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-xs text-stone-400 py-6 text-center border border-dashed border-amber-500/20 rounded-xl">
+          No applications found.
+        </div>
+        {% endfor %}
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}

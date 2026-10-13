@@ -1,0 +1,212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log in | Hadi88 Apps Django Administration</title>
+  <link rel="stylesheet" href="{% static 'admin/css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'admin/css/login.css' %}">
+  <link rel="stylesheet" href="{% static 'admin/css/responsive.css' %}">
+  <!-- Inline bulletproof fallback styles to guarantee flawless design under any network conditions -->
+  <style>
+    :root {
+      --primary: #f59e0b;
+      --secondary: #d97706;
+      --body-bg: #110c08;
+      --body-fg: #f5f5f4;
+      --header-bg: #1f140e;
+      --header-color: #fef3c7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 20%, #2a1810 0%, #110c08 100%) !important;
+      color: #e7e5e4 !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    #container {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(28, 18, 13, 0.92) !important;
+      border: 1px solid rgba(245, 158, 11, 0.3) !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.15) !important;
+      border-radius: 24px !important;
+      padding: 2.25rem 2rem !important;
+      backdrop-filter: blur(16px);
+    }
+    #header {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    .admin-logo-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 12px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 10px 20px rgba(217, 119, 6, 0.35);
+    }
+    #branding h1 {
+      font-size: 1.45rem !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+      letter-spacing: -0.02em;
+    }
+    #branding p {
+      font-size: 0.8rem;
+      color: #a8a29e;
+      margin-top: 4px;
+    }
+    .form-row {
+      margin-bottom: 1.2rem;
+    }
+    label {
+      display: block;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      color: #d6d3d1 !important;
+      margin-bottom: 0.4rem;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100% !important;
+      padding: 0.75rem 0.9rem !important;
+      background: #150e0a !important;
+      border: 1px solid rgba(245, 158, 11, 0.25) !important;
+      border-radius: 12px !important;
+      color: #ffffff !important;
+      font-size: 0.92rem !important;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2) !important;
+      background: #1b120c !important;
+    }
+    .submit-row {
+      margin-top: 1.5rem;
+    }
+    input[type="submit"] {
+      width: 100% !important;
+      padding: 0.85rem !important;
+      border: none !important;
+      border-radius: 12px !important;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+      color: #110c08 !important;
+      font-weight: 800 !important;
+      font-size: 0.95rem !important;
+      cursor: pointer;
+      box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.35) !important;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    input[type="submit"]:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .errornote, .errors {
+      background: rgba(239, 68, 68, 0.15) !important;
+      border: 1px solid rgba(239, 68, 68, 0.4) !important;
+      color: #fca5a5 !important;
+      border-radius: 12px !important;
+      padding: 0.75rem 1rem !important;
+      font-size: 0.85rem !important;
+      margin-bottom: 1.2rem;
+      list-style: none;
+    }
+    .quick-hint {
+      margin-top: 1.5rem;
+      padding-top: 1.2rem;
+      border-top: 1px solid rgba(245, 158, 11, 0.15);
+      text-align: center;
+      font-size: 0.78rem;
+      color: #78716c;
+      line-height: 1.4;
+    }
+    .quick-hint a {
+      color: #fbbf24;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .quick-hint a:hover {
+      text-decoration: underline;
+    }
+    .badge-creds {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 4px 10px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px dashed rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      font-family: monospace;
+      color: #fde68a;
+    }
+  </style>
+</head>
+<body>
+
+<div id="container">
+  <div id="header">
+    <div class="admin-logo-icon">🛡️</div>
+    <div id="branding">
+      <h1>Hadi88 Apps Administration</h1>
+      <p>Django Secure Control Center</p>
+    </div>
+  </div>
+
+  {% if form.errors and not form.non_field_errors %}
+  <p class="errornote">Please correct the errors below.</p>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+  {% for error in form.non_field_errors %}
+  <p class="errornote">{{ error }}</p>
+  {% endfor %}
+  {% endif %}
+
+  <form action="{{ app_path }}" method="post" id="login-form">
+    {% csrf_token %}
+    <div class="form-row">
+      <label for="id_username">Username or Email Address</label>
+      <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" placeholder="admin or nomistorage3@gmail.com">
+      {% if form.username.errors %}
+      <ul class="errors">{% for err in form.username.errors %}<li>{{ err }}</li>{% endfor %}</ul>
+      {% endif %}
+    </div>
+
+    <div class="form-row">
+      <label for="id_password">Password</label>
+      <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="••••••••">
+      {% if form.password.errors %}
+      <ul class="errors">{% for err in form.password.errors %}<li>{{ err }}</li>{% endfor %}</ul>
+      {% endif %}
+      <input type="hidden" name="next" value="{{ next }}">
+    </div>
+
+    <div class="submit-row">
+      <input type="submit" value="Sign In to Admin">
+    </div>
+  </form>
+
+  <div class="quick-hint">
+    <div>Standard login credentials:</div>
+    <div class="badge-creds">admin / admin1234</div>
+    <div style="margin-top: 10px;">
+      <a href="/admin/manage/">Switch to Custom Store Management Portal →</a>
+    </div>
+    <div style="margin-top: 4px;">
+      <a href="/">← Return to Public Storefront</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

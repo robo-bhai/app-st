@@ -1,0 +1,15 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+db.sqlite3
+db.sqlite3-wal
+db.sqlite3-shm
+media/
+apks/
+__pycache__/
+*.pyc

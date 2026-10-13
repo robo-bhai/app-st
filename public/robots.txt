@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin/manage/
+
+# High-priority XML Sitemap for Google Search Indexing
+Sitemap: https://api.uqn88.store/sitemap.xml
