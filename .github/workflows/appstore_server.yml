@@ -331,7 +331,7 @@ jobs:
       # ----------------------------------------------------
       # 9. MONITOR, AUTO-BACKUP DAEMON & KEEP ALIVE (Up to 6 Hours)
       # ----------------------------------------------------
-      - name: Monitor, Keep Alive & Periodic Drive Sync (360 Minutes)
+      # ----------------------------------------------------      - name: Monitor, Keep Alive & Periodic Drive Sync (360 Minutes)
         timeout-minutes: 360
         run: |
           echo "=========================================================="
@@ -417,8 +417,8 @@ EOF
 
           kill $AUTOSYNC_PID 2>/dev/null || true
 
-      # ----------------------------------------------------
-      # 10. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE (always())
+    
+  # 10. SAFE PUSH DATA TO GOOGLE DRIVE ON CLOSE (always())
       # ----------------------------------------------------
       - name: Safe Push Data to Google Drive on Close
         if: always()
