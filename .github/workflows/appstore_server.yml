@@ -345,20 +345,20 @@ jobs:
           # This protects against unexpected runner cancellation or crashes
           (
             while true; do
-              sleep 45
+              sleep 300
               echo "[Auto-Backup Daemon] Running periodic sync to Google Drive..."
               if [ -f ~/.config/rclone/rclone.conf ]; then
                 # Safe SQLite WAL checkpoint flush
-                python - << 'EOF' || true
-                import sqlite3, os
-                if os.path.exists('db.sqlite3'):
-                    try:
-                        conn = sqlite3.connect('db.sqlite3')
-                        conn.execute('PRAGMA wal_checkpoint(PASSIVE);')
-                        conn.close()
-                    except Exception:
-                        pass
-          EOF
+                python3 - << 'EOF' || true
+import sqlite3, os
+if os.path.exists('db.sqlite3'):
+    try:
+        conn = sqlite3.connect('db.sqlite3')
+        conn.execute('PRAGMA wal_checkpoint(PASSIVE);')
+        conn.close()
+    except Exception:
+        pass
+EOF
                 if [ -f "db.sqlite3" ]; then
                   rclone copyto db.sqlite3 gdrive:AppStoreBackup/db.sqlite3 --quiet || true
                 fi
