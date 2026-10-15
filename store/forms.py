@@ -25,11 +25,30 @@ class AppUploadForm(forms.ModelForm):
         help_text="Paste direct download URL from your GitHub Release"
     )
 
+    icon_link = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': GLASS_INPUT_CLASS,
+            'placeholder': 'https://raw.githubusercontent.com/user/repo/main/.../icon.png'
+        }),
+        label="Icon Link (GitHub / Image URL)",
+        help_text="Paste direct image link from GitHub (raw link) or external URL"
+    )
+    banner_link = forms.URLField(
+        required=False,
+        widget=forms.URLInput(attrs={
+            'class': GLASS_INPUT_CLASS,
+            'placeholder': 'https://raw.githubusercontent.com/user/repo/main/.../banner.png'
+        }),
+        label="Banner Link (GitHub / Image URL)",
+        help_text="Paste direct banner link from GitHub (raw link) or external URL"
+    )
+
     class Meta:
         model = App
         fields = [
             'app_name', 'package_name', 'developer_name', 'category',
-            'version', 'file_size', 'rating', 'app_icon', 'banner_image',
+            'version', 'file_size', 'rating', 'app_icon', 'icon_link', 'banner_image', 'banner_link',
             'binary_link', 'apk_file', 'description', 'is_featured', 'is_published'
         ]
         widgets = {
@@ -47,6 +66,8 @@ class AppUploadForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if 'app_icon' in self.fields:
+            self.fields['app_icon'].required = False
         if 'apk_file' in self.fields:
             self.fields['apk_file'].required = False
         if 'is_published' in self.fields and not self.instance.pk:

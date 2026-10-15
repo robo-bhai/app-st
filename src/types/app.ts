@@ -54,7 +54,9 @@ export interface AppModel {
   developer_name: string;
   category: AppCategory;
   app_icon: string;
+  icon_link?: string; // Direct link to image on GitHub / external URL
   banner_image?: string;
+  banner_link?: string;
   description: string;
   version: string;
   binary_link?: string; // Direct link to APK in GitHub Releases

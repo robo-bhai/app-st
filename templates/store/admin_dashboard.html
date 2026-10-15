@@ -128,8 +128,15 @@
         </div>
         <div>
           <label class="block text-stone-300 font-semibold mb-1">
-            <span>App Icon (Cloudinary)</span>
-            <span class="text-[10px] text-amber-400 font-normal ml-1">Saved to Cloudinary</span>
+            <span>App Icon Link (GitHub Raw / Image URL)</span>
+            <span class="text-[10px] text-amber-400 font-normal ml-1">Direct GitHub URL</span>
+          </label>
+          {{ upload_form.icon_link }}
+        </div>
+        <div>
+          <label class="block text-stone-300 font-semibold mb-1">
+            <span>Or Upload Icon File</span>
+            <span class="text-[10px] text-stone-400 font-normal ml-1">Committed to GitHub</span>
           </label>
           {{ upload_form.app_icon }}
         </div>

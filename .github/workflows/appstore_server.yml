@@ -11,6 +11,8 @@ concurrency:
 jobs:
   run-appstore:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -66,17 +68,19 @@ jobs:
           echo "MySQL 'appstore_db' server is up, running and configured."
 
       # ----------------------------------------------------
-      # 2. RESTORE MYSQL SNAPSHOT FROM GITHUB ACTIONS CACHE
+      # 2. RESTORE MYSQL & MEDIA SNAPSHOT FROM GITHUB ACTIONS CACHE
       # ----------------------------------------------------
-      - name: Restore MySQL Snapshot from Cache
-        id: mysql-cache
+      - name: Restore MySQL & Media from Cache
+        id: appstore-cache
         uses: actions/cache/restore@v4
         with:
-          path: ./mysql_backups
-          key: mysql-snapshot-${{ runner.os }}-${{ github.run_id }}
+          path: |
+            ./mysql_backups
+            ./media
+          key: appstore-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            mysql-snapshot-${{ runner.os }}-
-            mysql-snapshot-
+            appstore-cache-${{ runner.os }}-
+            appstore-cache-
 
       - name: Load MySQL Snapshot into Database
         run: |
@@ -428,11 +432,36 @@ jobs:
           fi
 
       # ----------------------------------------------------
-      # 12. SAVE MYSQL SNAPSHOT TO GITHUB ACTIONS CACHE
+      # 12. AUTO-COMMIT & PUSH MEDIA TO GITHUB REPOSITORY
       # ----------------------------------------------------
-      - name: Save MySQL Snapshot to GitHub Actions Cache on Close
+      - name: Auto-Commit & Push Media to GitHub Repo
+        if: always()
+        run: |
+          echo "=========================================================="
+          echo "  AUTO-COMMITTING UPLOADED ICONS & BANNERS TO GITHUB REPO"
+          echo "=========================================================="
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          mkdir -p media/icons media/banners
+          git add media/icons/ media/banners/ 2>/dev/null || true
+          
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-persist uploaded app icons and banners [skip ci]" || true
+            git push origin HEAD || true
+            echo "Uploaded media successfully committed and pushed to GitHub repository!"
+          else
+            echo "No new media files to commit."
+          fi
+
+      # ----------------------------------------------------
+      # 13. SAVE MYSQL & MEDIA TO GITHUB ACTIONS CACHE
+      # ----------------------------------------------------
+      - name: Save MySQL & Media to GitHub Actions Cache on Close
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: ./mysql_backups
-          key: mysql-snapshot-${{ runner.os }}-${{ github.run_id }}
+          path: |
+            ./mysql_backups
+            ./media
+          key: appstore-cache-${{ runner.os }}-${{ github.run_id }}

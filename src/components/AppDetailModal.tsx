@@ -97,7 +97,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2.5 sm:gap-4">
               <img
-                src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
+                src={resolveAppIcon(app.icon_link || app.app_icon, app.app_name, app.category)}
                 alt={app.app_name}
                 onError={(e) => handleImageFallback(e, app.app_name, app.category)}
                 referrerPolicy="no-referrer"
@@ -391,7 +391,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                     className="p-2 rounded-xl glass-panel hover:border-amber-400/40 cursor-pointer flex items-center gap-2"
                   >
                     <img
-                      src={resolveAppIcon(rel.app_icon, rel.app_name, rel.category)}
+                      src={resolveAppIcon(rel.icon_link || rel.app_icon, rel.app_name, rel.category)}
                       alt={rel.app_name}
                       onError={(e) => handleImageFallback(e, rel.app_name, rel.category)}
                       className="w-8 h-8 rounded-lg object-cover bg-stone-900 shrink-0"

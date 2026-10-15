@@ -34,7 +34,7 @@ export const AppCard: React.FC<AppCardProps> = ({
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="relative shrink-0">
             <img
-              src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
+              src={resolveAppIcon(app.icon_link || app.app_icon, app.app_name, app.category)}
               alt={app.app_name}
               onError={(e) => handleImageFallback(e, app.app_name, app.category)}
               referrerPolicy="no-referrer"
@@ -111,7 +111,7 @@ export const AppCard: React.FC<AppCardProps> = ({
         {/* App Icon Container */}
         <div className="relative mb-1.5 sm:mb-3">
           <img
-            src={resolveAppIcon(app.app_icon, app.app_name, app.category)}
+            src={resolveAppIcon(app.icon_link || app.app_icon, app.app_name, app.category)}
             alt={app.app_name}
             onError={(e) => handleImageFallback(e, app.app_name, app.category)}
             referrerPolicy="no-referrer"

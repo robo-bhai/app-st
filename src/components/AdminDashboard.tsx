@@ -80,6 +80,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     binary_link: '',
     apk_file: '',
     app_icon: '',
+    icon_link: '',
     featured: false,
     is_published: true,
   });
@@ -208,6 +209,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       binary_link: `https://github.com/hadi88/releases/download/v1.0.0/${generatedSlug}.apk`,
       apk_file: `${generatedSlug}-v1.0.0.apk`,
       app_icon: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
+      icon_link: '',
       featured: true,
       is_published: true,
     });
@@ -232,6 +234,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       binary_link: '',
       apk_file: '',
       app_icon: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
+      icon_link: '',
       featured: false,
       is_published: true,
     });
@@ -254,6 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       binary_link: app.binary_link || '',
       apk_file: app.apk_file || '',
       app_icon: app.app_icon || '',
+      icon_link: app.icon_link || '',
       featured: !!app.featured,
       is_published: app.is_published !== false,
     });
@@ -283,6 +287,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         featured: formData.featured,
         is_published: formData.is_published,
         app_icon: formData.app_icon || editingApp.app_icon,
+        icon_link: formData.icon_link || editingApp.icon_link,
         binary_link: formData.binary_link || editingApp.binary_link,
         apk_file: formData.apk_file || editingApp.apk_file,
         updated_at: new Date().toISOString(),
@@ -296,6 +301,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         developer_name: formData.developer_name,
         category: formData.category,
         app_icon: formData.app_icon || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop&q=80',
+        icon_link: formData.icon_link || '',
         description: formData.description || 'Modern mobile application built by Hadi88 engineering.',
         whats_new: formData.whats_new || 'Initial stable release on Hadi88 Apps Store.',
         version: formData.version || '1.0.0',

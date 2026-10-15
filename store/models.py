@@ -101,8 +101,22 @@ class App(models.Model):
     package_name = models.CharField(max_length=150, unique=True, db_index=True, verbose_name="Package Name (e.g. com.hadi88.app)")
     developer_name = models.CharField(max_length=120, default="Hadi88 Studio", verbose_name="Developer Name")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Tools', db_index=True)
-    app_icon = models.ImageField(upload_to=app_icon_upload_path, verbose_name="App Icon (512x512)")
+    app_icon = models.ImageField(upload_to=app_icon_upload_path, blank=True, null=True, verbose_name="App Icon (512x512)")
+    icon_link = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Icon Link (GitHub / Image Direct URL)",
+        help_text="Paste direct GitHub raw image URL (e.g. https://raw.githubusercontent.com/.../icon.png) or external image link"
+    )
     banner_image = models.ImageField(upload_to=app_banner_upload_path, blank=True, null=True, verbose_name="Featured Banner (16:9)")
+    banner_link = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Banner Link (GitHub / Image Direct URL)",
+        help_text="Paste direct GitHub raw image URL or external banner link"
+    )
     description = models.TextField(verbose_name="Full Description")
     version = models.CharField(max_length=20, default="1.0.0", verbose_name="Version")
     binary_link = models.URLField(
@@ -166,10 +180,14 @@ class App(models.Model):
     def safe_icon_url(self):
         """
         Guaranteed working icon URL in all environments:
-        1. Cloudinary or remote http(s) URL if configured
-        2. Local media file if exists on disk across media, static, or public dirs
-        3. Inline base64 SVG Data URI fallback (works 100% offline, zero network calls, never breaks!)
+        1. Direct icon_link (GitHub raw URL, GitHub Releases asset, or any image link)
+        2. Cloudinary or remote http(s) URL if configured
+        3. Local media file in media/icons/ (restored from cache / git repo)
+        4. Inline base64 SVG Data URI fallback (works 100% offline, zero network calls, never breaks!)
         """
+        if self.icon_link and self.icon_link.strip():
+            return self.icon_link.strip()
+
         if self.app_icon:
             try:
                 url = str(self.app_icon.url)
@@ -200,9 +218,15 @@ class App(models.Model):
     @property
     def safe_banner_url(self):
         """
-        Guaranteed working banner image in safe mode or with Cloudinary.
-        Falls back to curated category banners from static assets.
+        Guaranteed working banner image:
+        1. Direct banner_link (GitHub raw URL, GitHub Releases asset, or any image link)
+        2. Cloudinary or remote http(s) URL if configured
+        3. Local media file in media/banners/ (restored from cache / git repo)
+        4. Falls back to curated category banners from static assets.
         """
+        if self.banner_link and self.banner_link.strip():
+            return self.banner_link.strip()
+
         if self.banner_image:
             try:
                 url = str(self.banner_image.url)

@@ -24,7 +24,7 @@ class AppAdmin(admin.ModelAdmin):
         'created_at'
     )
     list_filter = ('category', 'is_featured', 'is_published', 'created_at')
-    search_fields = ('app_name', 'package_name', 'developer_name', 'description', 'binary_link')
+    search_fields = ('app_name', 'package_name', 'developer_name', 'description', 'binary_link', 'icon_link')
     list_editable = ('is_featured', 'is_published')
     readonly_fields = ('downloads_count', 'created_at', 'updated_at', 'icon_preview')
     ordering = ('-downloads_count', '-created_at')
