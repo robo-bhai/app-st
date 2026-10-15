@@ -1,0 +1,115 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Ask for App - On-Demand Custom Mobile App Development | Hadi88 Apps{% endblock %}
+
+{% block meta %}
+<meta name="description" content="Find and ask for your dreaming apps. We are building app on your demand. Submit your specifications to Hadi88 Apps engineering team for custom Android, iOS, and Web solutions.">
+<meta name="keywords" content="ask for app, custom mobile app development, on demand apps, build android app, Hadi88 Apps, custom software, find and ask for your dreaming apps">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:site_name" content="Hadi88 Apps">
+<meta property="og:title" content="Ask for App - On-Demand Custom App Development | Hadi88 Apps">
+<meta property="og:description" content="Find and ask for your dreaming apps. We build custom applications on your demand.">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ask for App - Hadi88 Apps On-Demand">
+<meta name="twitter:description" content="Find and ask for your dreaming apps. We are building app on your demand.">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}/images/hero_app_showcase_1791093747904.jpg">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-6">
+
+  <!-- Header -->
+  <div class="glass-panel rounded-3xl p-6 sm:p-8 space-y-2 text-center border border-amber-500/20">
+    <div class="text-xs font-bold text-amber-400 uppercase tracking-wider">Hadi88 Apps On-Demand Engineering</div>
+    <h1 class="text-2xl sm:text-4xl font-display font-extrabold text-white">Find and Ask for Your Dreaming Apps</h1>
+    <p class="text-xs sm:text-sm text-amber-200/80 font-medium">"We are building app on your demand"</p>
+  </div>
+
+  <!-- STRICT POLICY WARNING BOX -->
+  <div class="rounded-2xl bg-red-950/30 border border-red-500/40 p-5 space-y-2 text-xs">
+    <div class="font-bold text-red-300 uppercase tracking-wide text-xs flex items-center gap-2">
+      <span>⚠️ Strict Policy & Legal Notice</span>
+    </div>
+    <p class="text-red-200/90 leading-relaxed font-medium">
+      <strong>We do not build any illegal, pirated, modded, gambling, adult, hacking, or theft category applications.</strong>
+      In such cases, we will <strong>never reply to spam emails, fraudulent messages, or illicit solicitations</strong>. Our decision is final.
+    </p>
+  </div>
+
+  <!-- Demand Submission Form -->
+  <div class="glass-panel rounded-3xl p-6 sm:p-8 border border-amber-500/20">
+    <form method="POST" class="space-y-4">
+      {% csrf_token %}
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Your Full Name *</label>
+          {{ form.user_name }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Email Address *</label>
+          {{ form.email }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Contact Method</label>
+          {{ form.contact_method }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">WhatsApp / Phone / Username</label>
+          {{ form.contact_handle }}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-amber-500/10">
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Dreaming App Name *</label>
+          {{ form.app_title }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Target Platform</label>
+          {{ form.platform }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Category</label>
+          {{ form.category }}
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-stone-300 mb-1">Detailed Requirements & Features *</label>
+        {{ form.requirements }}
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Desired Timeline</label>
+          {{ form.timeline }}
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-300 mb-1">Budget Range</label>
+          {{ form.budget }}
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl bg-[#1b140f] border border-amber-500/20 flex items-start gap-3">
+        {{ form.legal_policy_agreed }}
+        <label class="text-xs text-stone-300 leading-relaxed cursor-pointer">
+          I confirm that my proposed app contains no illegal, pirated, or theft material, and I accept Hadi88 Apps safety standards.
+        </label>
+      </div>
+
+      <div class="pt-3 flex justify-end">
+        <button type="submit" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-sm shadow-xl shadow-amber-500/25">
+          Submit App Demand to Admin
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,415 @@
+name: Run AppStore Test Servers & Cloudflare Tunnel
+
+on:
+  workflow_dispatch:
+
+# When a new workflow is triggered, cancel any previously running instance safely
+concurrency:
+  group: appstore-server-group
+  cancel-in-progress: true
+
+jobs:
+  run-appstore:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ----------------------------------------------------
+      # 1. START & CONFIGURE MYSQL DATABASE (YML APNA MYSQL BNAE)
+      # ----------------------------------------------------
+      - name: Start & Configure MySQL Server
+        run: |
+          echo "=========================================================="
+          echo "  INITIALIZING MYSQL SERVER (IN PLACE OF SQLITE)"
+          echo "=========================================================="
+          sudo systemctl start mysql
+          sudo systemctl status mysql --no-pager || true
+          
+          # Configure database, user credentials, and permissions
+          sudo mysql -e "CREATE DATABASE IF NOT EXISTS appstore_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          sudo mysql -e "CREATE USER IF NOT EXISTS 'appstore_user'@'localhost' IDENTIFIED BY 'appstore_pass_2026';"
+          sudo mysql -e "CREATE USER IF NOT EXISTS 'appstore_user'@'127.0.0.1' IDENTIFIED BY 'appstore_pass_2026';"
+          sudo mysql -e "GRANT ALL PRIVILEGES ON appstore_db.* TO 'appstore_user'@'localhost';"
+          sudo mysql -e "GRANT ALL PRIVILEGES ON appstore_db.* TO 'appstore_user'@'127.0.0.1';"
+          sudo mysql -e "FLUSH PRIVILEGES;"
+          echo "MySQL 'appstore_db' server is up, running and configured."
+
+      # ----------------------------------------------------
+      # 2. RESTORE MYSQL SNAPSHOT FROM GITHUB ACTIONS CACHE
+      # ----------------------------------------------------
+      - name: Restore MySQL Snapshot from Cache
+        id: mysql-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ./mysql_backups
+          key: mysql-snapshot-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            mysql-snapshot-${{ runner.os }}-
+            mysql-snapshot-
+
+      - name: Load MySQL Snapshot into Database
+        run: |
+          mkdir -p ./mysql_backups
+          if [ -f "./mysql_backups/appstore_db_latest.sql" ]; then
+            echo ">>> Found cached MySQL snapshot (appstore_db_latest.sql). Restoring..."
+            sudo mysql appstore_db < ./mysql_backups/appstore_db_latest.sql
+            echo ">>> MySQL database successfully restored from GitHub Actions Cache snapshot!"
+          else
+            echo ">>> No prior MySQL snapshot found in GitHub Actions cache. Starting fresh database."
+          fi
+
+      # ----------------------------------------------------
+      # 3. SETUP RCLONE FOR OPTIONAL CLOUD MEDIA & BACKUP
+      # ----------------------------------------------------
+      - name: Install & Configure Rclone (Optional Backup)
+        env:
+          RCLONE_CONFIG_BODY: ${{ secrets.RCLONE_CONFIG_DATA }}
+        run: |
+          if [ -z "$RCLONE_CONFIG_BODY" ]; then
+            echo "NOTICE: RCLONE_CONFIG_DATA secret is not provided."
+            echo "Proceeding with MySQL database persistence and Cloudinary media."
+            exit 0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rclone
+          mkdir -p ~/.config/rclone
+          echo "$RCLONE_CONFIG_BODY" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf
+          echo "Rclone config installed successfully."
+
+      # ----------------------------------------------------
+      # 4. INSTALL CLOUDFLARED
+      # ----------------------------------------------------
+      - name: Install Cloudflared
+        run: |
+          echo "=== Installing Cloudflared ==="
+          curl -sL --retry 3 --output /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i /tmp/cloudflared.deb || sudo apt-get install -f -y
+          cloudflared --version
+
+      # ----------------------------------------------------
+      # 5. INSTALL PYTHON DEPENDENCIES & PREPARE ASSETS
+      # ----------------------------------------------------
+      - name: Install Python Dependencies & Prepare Assets
+        run: |
+          echo "=== Installing Python dependencies ==="
+          python -m pip install --upgrade pip setuptools wheel
+          pip install gunicorn whitenoise PyMySQL cryptography
+          if [ -f requirements.txt ]; then 
+            pip install -r requirements.txt
+          fi
+
+          echo "=== Preparing Asset & Media directories ==="
+          mkdir -p public/images static/images static/css media/icons media/banners media/apks apks staticfiles mysql_backups
+          if [ -d "src/assets/images" ]; then
+            cp -r src/assets/images/* public/images/ 2>/dev/null || true
+            cp -r src/assets/images/* static/images/ 2>/dev/null || true
+          fi
+          if [ -d "public/images" ]; then
+            cp -r public/images/* static/images/ 2>/dev/null || true
+          fi
+          echo "Dependencies installed and asset directories prepared."
+
+      # ----------------------------------------------------
+      # 6. RUN DJANGO MIGRATIONS (ON MYSQL) & COLLECT STATIC
+      # ----------------------------------------------------
+      - name: Run Django Migrations & Collect Static
+        env:
+          DJANGO_SETTINGS_MODULE: appstore_project.settings
+          DB_ENGINE: mysql
+          DB_NAME: appstore_db
+          DB_USER: appstore_user
+          DB_PASSWORD: appstore_pass_2026
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: |
+          echo "=== Running Django Migrations on MySQL (appstore_db) ==="
+          python manage.py makemigrations store || true
+          python manage.py makemigrations || true
+          python manage.py migrate --noinput
+
+          echo "=== Collecting Static Files & Syncing Django Admin Design ==="
+          mkdir -p static staticfiles media static/images public/images media/banners media/icons static/css static/admin staticfiles/admin
+          
+          # Run collectstatic with finders
+          python manage.py collectstatic --noinput || true
+
+          # Direct sync of Django Admin package assets into static/admin and staticfiles/admin
+          python - << 'EOF' || true
+          import os, shutil, django
+          from django.conf import settings
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
+          django.setup()
+          from django.contrib.staticfiles import finders
+
+          dest_static = os.path.join(settings.BASE_DIR, 'static', 'admin')
+          dest_staticfiles = os.path.join(settings.BASE_DIR, 'staticfiles', 'admin')
+          os.makedirs(dest_static, exist_ok=True)
+          os.makedirs(dest_staticfiles, exist_ok=True)
+
+          admin_base_css = finders.find('admin/css/base.css')
+          if admin_base_css and os.path.exists(admin_base_css):
+              admin_pkg_dir = os.path.dirname(os.path.dirname(os.path.dirname(admin_base_css)))
+              if os.path.exists(admin_pkg_dir):
+                  shutil.copytree(admin_pkg_dir, dest_static, dirs_exist_ok=True)
+                  shutil.copytree(admin_pkg_dir, dest_staticfiles, dirs_exist_ok=True)
+          
+          if os.path.exists(dest_static):
+              shutil.copytree(dest_static, dest_staticfiles, dirs_exist_ok=True)
+              print(f"[Workflow] Admin static assets confirmed in {dest_static} and {dest_staticfiles}.")
+          EOF
+
+          if [ -d "static/css" ]; then
+            mkdir -p staticfiles/css
+            cp -r static/css/* staticfiles/css/ 2>/dev/null || true
+          fi
+
+          # Verify MySQL database records
+          python - << 'EOF' || true
+          import os, django
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
+          django.setup()
+          from store.models import App, AppDemand
+          print(f"[MySQL Status] Total Apps in DB: {App.objects.count()}")
+          print(f"[MySQL Status] Total Demands in DB: {AppDemand.objects.count()}")
+          EOF
+
+      # ----------------------------------------------------
+      # 7. CREATE SUPERUSER EXCLUSIVELY FROM GITHUB SECRETS (NO FALLBACK)
+      # ----------------------------------------------------
+      - name: Create or Refresh Superuser (Strictly from GitHub Secrets)
+        env:
+          DJANGO_SETTINGS_MODULE: appstore_project.settings
+          DB_ENGINE: mysql
+          DB_NAME: appstore_db
+          DB_USER: appstore_user
+          DB_PASSWORD: appstore_pass_2026
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DJANGO_SUPERUSER_USERNAME: ${{ secrets.SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_EMAIL: ${{ secrets.SUPERUSER_EMAIL }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.SUPERUSER_PASSWORD }}
+        run: |
+          python - << 'EOF'
+          import os, sys, django
+          os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'appstore_project.settings')
+          django.setup()
+          from django.contrib.auth import get_user_model
+          
+          User = get_user_model()
+          raw_username = os.getenv('DJANGO_SUPERUSER_USERNAME', '').strip()
+          raw_email = os.getenv('DJANGO_SUPERUSER_EMAIL', '').strip()
+          raw_password = os.getenv('DJANGO_SUPERUSER_PASSWORD', '').strip()
+
+          # Strict rule: Super user MUST ONLY be created from GitHub secrets, NOT from any fallback
+          if not raw_username or not raw_password:
+              print("==================================================================")
+              print("[Auth] NOTICE: SUPERUSER_USERNAME and/or SUPERUSER_PASSWORD secrets are empty.")
+              print("[Auth] Policy: Super user is created ONLY and STRICTLY from GitHub Secrets.")
+              print("[Auth] No fallback superuser created. Skipping superuser step.")
+              print("==================================================================")
+              sys.exit(0)
+
+          user = User.objects.filter(username=raw_username).first()
+          if not user and raw_email:
+              user = User.objects.filter(email=raw_email).first()
+
+          if not user:
+              user = User.objects.create_superuser(
+                  username=raw_username,
+                  email=raw_email or f"{raw_username}@example.com",
+                  password=raw_password
+              )
+              print(f"[Auth] SUCCESS: Superuser '{raw_username}' created strictly from GitHub Secrets.")
+          else:
+              user.set_password(raw_password)
+              if raw_email:
+                  user.email = raw_email
+              user.is_active = True
+              user.is_staff = True
+              user.is_superuser = True
+              user.save()
+              print(f"[Auth] SUCCESS: Superuser '{raw_username}' refreshed strictly from GitHub Secrets.")
+          EOF
+
+      # ----------------------------------------------------
+      # 8. START GUNICORN BACKEND (PORT 8000 WITH MYSQL & CLOUDINARY)
+      # ----------------------------------------------------
+      - name: Start Gunicorn (Backend)
+        env:
+          DJANGO_SETTINGS_MODULE: appstore_project.settings
+          DB_ENGINE: mysql
+          DB_NAME: appstore_db
+          DB_USER: appstore_user
+          DB_PASSWORD: appstore_pass_2026
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: |
+          echo "=== Starting Gunicorn with MySQL Backend on 0.0.0.0:8000 ==="
+          nohup gunicorn appstore_project.wsgi:application \
+            --bind 0.0.0.0:8000 \
+            --workers 3 \
+            --timeout 120 \
+            --access-logfile gunicorn_access.log \
+            --error-logfile gunicorn.log > /dev/null 2>&1 &
+          
+          # Health check for port 8000
+          for i in {1..20}; do
+            if curl -s http://127.0.0.1:8000/ > /dev/null 2>&1; then
+              echo "Gunicorn backend is up and running on MySQL!"
+              break
+            fi
+            sleep 1
+          done
+
+      # ----------------------------------------------------
+      # 9. START CLOUDFLARE TUNNEL (DJANGO BACKEND PORT 8000)
+      # ----------------------------------------------------
+      - name: Start Cloudflare Tunnel (Django Backend & Admin)
+        env:
+          BACKEND_TOKEN: ${{ secrets.CLOUDFLARE_BACKEND_TOKEN || secrets.CLOUDFLARE_TUNNEL_TOKEN || secrets.CLOUDFLARE_TOKEN }}
+        run: |
+          if [ -n "$BACKEND_TOKEN" ]; then
+            echo "=== Starting Cloudflare Tunnel with Custom Domain Token ==="
+            nohup cloudflared tunnel --no-autoupdate run --token "$BACKEND_TOKEN" > backend_cf.log 2>&1 &
+            sleep 5
+            echo "Cloudflare tunnel launched with configured token."
+            echo "Connecting to your configured domain (e.g., https://api.uqn88.store or https://uqn88.store)."
+          else
+            echo "=== CLOUDFLARE_BACKEND_TOKEN secret not set ==="
+            echo "=== Launching Free Instant TryCloudflare Tunnel (No Token Needed) ==="
+            nohup cloudflared tunnel --url http://127.0.0.1:8000 --no-autoupdate > backend_cf.log 2>&1 &
+            sleep 6
+            TUNNEL_URL=$(grep -o 'https://[-a-zA-Z0-9.]*\.trycloudflare\.com' backend_cf.log | head -n 1 || true)
+            echo "=========================================================="
+            echo "  PUBLIC LIVE TUNNEL URL: $TUNNEL_URL"
+            echo "  Storefront: ${TUNNEL_URL}/"
+            echo "  Django Admin: ${TUNNEL_URL}/admin/"
+            echo "  Custom Admin: ${TUNNEL_URL}/admin/manage/login/"
+            echo "=========================================================="
+            if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+              echo "## 🚀 Hadi88 AppStore Server is LIVE!" >> $GITHUB_STEP_SUMMARY
+              echo "- **Public Store:** [$TUNNEL_URL]($TUNNEL_URL)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Django Admin:** [$TUNNEL_URL/admin/]($TUNNEL_URL/admin/)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Custom Management:** [$TUNNEL_URL/admin/manage/]($TUNNEL_URL/admin/manage/)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Database:** MySQL 8 (\`appstore_db\`) with GitHub Cache Snapshots" >> $GITHUB_STEP_SUMMARY
+              echo "- **Superuser:** Strictly managed via GitHub Secrets (\`SUPERUSER_USERNAME\`, \`SUPERUSER_PASSWORD\`)" >> $GITHUB_STEP_SUMMARY
+              echo "- **APK Storage:** GitHub Releases Direct Binary Links" >> $GITHUB_STEP_SUMMARY
+              echo "- **Icon Storage:** Cloudinary Cloud Media" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      # ----------------------------------------------------
+      # 10. MONITOR, AUTO-BACKUP DAEMON & KEEP ALIVE (Up to 6 Hours)
+      # ----------------------------------------------------
+      - name: Monitor, Keep Alive & Periodic MySQL Cache Dumps (360 Minutes)
+        timeout-minutes: 360
+        run: |
+          echo "=========================================================="
+          echo "  Hadi88 Django Store & Admin Server LIVE!"
+          echo "  - Backend (Django / Gunicorn): MySQL 8 on Port 8000"
+          echo "  - Cloudflare Tunnel: Connected to 0.0.0.0:8000"
+          echo "  - Periodic MySQL Snapshot Backup active every 5 minutes"
+          echo "=========================================================="
+          
+          # Start background auto-backup daemon every 5 minutes
+          # This protects against runner cancellation or unexpected stops
+          (
+            while true; do
+              sleep 300
+              echo "[Auto-Backup Daemon] Dumping MySQL snapshot to ./mysql_backups/appstore_db_latest.sql..."
+              mkdir -p ./mysql_backups
+              sudo mysqldump --single-transaction --quick appstore_db > ./mysql_backups/appstore_db_latest.sql 2>/dev/null || true
+              
+              if [ -f ~/.config/rclone/rclone.conf ]; then
+                rclone copyto ./mysql_backups/appstore_db_latest.sql gdrive:AppStoreBackup/mysql_dump.sql --quiet || true
+              fi
+              echo "[Auto-Backup Daemon] Periodic MySQL snapshot completed."
+            done
+          ) &
+          AUTOSYNC_PID=$!
+          echo "Auto-backup background daemon started (PID: $AUTOSYNC_PID)."
+
+          # Monitor loops
+          for i in {1..360}; do
+            sleep 60
+            
+            # Check Cloudflared process
+            if ! pgrep -f "cloudflared" > /dev/null; then
+              echo "CRITICAL: Cloudflared process stopped!"
+              tail -n 30 backend_cf.log || true
+              kill $AUTOSYNC_PID 2>/dev/null || true
+              exit 1
+            fi
+            
+            # Check Gunicorn process
+            if ! pgrep -f "gunicorn" > /dev/null; then
+              echo "CRITICAL: Gunicorn backend stopped!"
+              tail -n 30 gunicorn.log || true
+              kill $AUTOSYNC_PID 2>/dev/null || true
+              exit 1
+            fi
+            
+            # Heartbeat log every 15 minutes
+            if (( i % 15 == 0 )); then
+              echo "[Heartbeat] Server live on MySQL for $i minutes..."
+            fi
+          done
+
+          kill $AUTOSYNC_PID 2>/dev/null || true
+
+      # ----------------------------------------------------
+      # 11. TAKE FULL MYSQL SNAPSHOT BEFORE CLOSE (always())
+      # ----------------------------------------------------
+      - name: Dump Complete MySQL Snapshot on Close
+        if: always()
+        run: |
+          echo "=========================================================="
+          echo "  WORKFLOW CLOSING: TAKING COMPLETE MYSQL SNAPSHOT"
+          echo "=========================================================="
+          pkill -f "gunicorn" 2>/dev/null || true
+          pkill -f "cloudflared" 2>/dev/null || true
+          sleep 2
+
+          mkdir -p ./mysql_backups
+          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+          
+          # Clean transactional dump of complete MySQL database
+          echo ">>> Generating transactional MySQL dump (appstore_db_latest.sql)..."
+          sudo mysqldump --single-transaction --quick --routines --triggers --databases appstore_db > ./mysql_backups/appstore_db_latest.sql
+          cp ./mysql_backups/appstore_db_latest.sql ./mysql_backups/appstore_db_${TIMESTAMP}.sql
+          
+          echo "MySQL snapshot successfully created:"
+          ls -lh ./mysql_backups/appstore_db_latest.sql
+
+          # Also sync snapshot to Google Drive if rclone config exists
+          if [ -f ~/.config/rclone/rclone.conf ]; then
+            echo ">>> Uploading MySQL snapshot and media to Google Drive backup..."
+            rclone copyto ./mysql_backups/appstore_db_latest.sql gdrive:AppStoreBackup/mysql_dump.sql --verbose || true
+            rclone copyto ./mysql_backups/appstore_db_${TIMESTAMP}.sql gdrive:AppStoreBackup/snapshots/mysql_${TIMESTAMP}.sql --verbose || true
+            rclone copy media gdrive:AppStoreBackup/media/ --verbose || true
+          fi
+
+      # ----------------------------------------------------
+      # 12. SAVE MYSQL SNAPSHOT TO GITHUB ACTIONS CACHE
+      # ----------------------------------------------------
+      - name: Save MySQL Snapshot to GitHub Actions Cache on Close
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ./mysql_backups
+          key: mysql-snapshot-${{ runner.os }}-${{ github.run_id }}
