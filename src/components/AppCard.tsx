@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Download, Check, ShieldCheck } from 'lucide-react';
+import { Star, Download, Check, ShieldCheck, QrCode } from 'lucide-react';
 import { AppModel } from '../types/app';
 import { resolveAppIcon, handleImageFallback } from '../utils/imageUtils';
 
@@ -72,31 +72,45 @@ export const AppCard: React.FC<AppCardProps> = ({
           </div>
         </div>
 
-        <button
-          onClick={handleDownloadClick}
-          disabled={downloading}
-          className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1 transition-all min-h-[32px] sm:min-h-[36px] ${
-            downloaded
-              ? 'bg-emerald-500 text-black shadow-sm'
-              : downloading
-              ? 'bg-amber-500/30 text-amber-300 animate-pulse cursor-wait'
-              : 'bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30'
-          }`}
-        >
-          {downloaded ? (
-            <>
-              <Check className="w-3 h-3 stroke-[2.5]" />
-              <span className="hidden xs:inline">Done</span>
-            </>
-          ) : downloading ? (
-            <span>...</span>
-          ) : (
-            <>
-              <Download className="w-3 h-3" />
-              <span>Get</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={handleDownloadClick}
+            disabled={downloading}
+            className={`px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1 transition-all min-h-[32px] sm:min-h-[36px] ${
+              downloaded
+                ? 'bg-emerald-500 text-black shadow-sm'
+                : downloading
+                ? 'bg-amber-500/30 text-amber-300 animate-pulse cursor-wait'
+                : 'bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/30'
+            }`}
+          >
+            {downloaded ? (
+              <>
+                <Check className="w-3 h-3 stroke-[2.5]" />
+                <span className="hidden xs:inline">Done</span>
+              </>
+            ) : downloading ? (
+              <span>...</span>
+            ) : (
+              <>
+                <Download className="w-3 h-3" />
+                <span>Get</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectApp(app);
+            }}
+            className="p-1.5 rounded-lg border border-amber-500/30 hover:border-amber-400 bg-amber-500/10 text-amber-300 hover:text-white transition-colors"
+            title="View QR Code & Download Image"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     );
   }
@@ -162,31 +176,45 @@ export const AppCard: React.FC<AppCardProps> = ({
           </span>
         </div>
 
-        <button
-          onClick={handleDownloadClick}
-          disabled={downloading}
-          className={`w-full py-1 sm:py-1.5 px-1.5 sm:px-2.5 rounded-lg text-[9px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all min-h-[30px] sm:min-h-[36px] ${
-            downloaded
-              ? 'bg-emerald-500 text-black shadow-sm'
-              : downloading
-              ? 'bg-amber-500/30 text-amber-300 animate-pulse cursor-wait'
-              : 'bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/25 hover:border-amber-400'
-          }`}
-        >
-          {downloaded ? (
-            <>
-              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5]" />
-              <span>Installed</span>
-            </>
-          ) : downloading ? (
-            <span>Wait...</span>
-          ) : (
-            <>
-              <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-              <span>Install (APK)</span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-1.5 w-full">
+          <button
+            onClick={handleDownloadClick}
+            disabled={downloading}
+            className={`flex-1 py-1 sm:py-1.5 px-1.5 sm:px-2 rounded-lg text-[9px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all min-h-[30px] sm:min-h-[36px] ${
+              downloaded
+                ? 'bg-emerald-500 text-black shadow-sm'
+                : downloading
+                ? 'bg-amber-500/30 text-amber-300 animate-pulse cursor-wait'
+                : 'bg-amber-500/15 hover:bg-amber-500 text-amber-300 hover:text-black border border-amber-500/25 hover:border-amber-400'
+            }`}
+          >
+            {downloaded ? (
+              <>
+                <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[2.5]" />
+                <span>Installed</span>
+              </>
+            ) : downloading ? (
+              <span>Wait...</span>
+            ) : (
+              <>
+                <Download className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                <span>Install</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectApp(app);
+            }}
+            className="p-1.5 sm:p-2 rounded-lg border border-amber-500/25 hover:border-amber-400 bg-amber-500/10 text-amber-300 hover:text-white transition-colors shrink-0"
+            title="View App Details & QR Code"
+          >
+            <QrCode className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+          </button>
+        </div>
       </div>
     </div>
   );

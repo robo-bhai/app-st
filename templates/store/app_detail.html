@@ -106,6 +106,18 @@
           </svg>
           Download & Install ({{ app.file_size }})
         </button>
+
+        <button 
+          type="button"
+          onclick="downloadAppQrCodeImage()"
+          class="w-full px-4 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          title="Download image with QR code, app name, version, and short details"
+        >
+          <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <span>Download QR Code Image</span>
+        </button>
       </div>
 
     </div>
@@ -166,12 +178,14 @@
       <div class="p-3 bg-white rounded-2xl border-2 border-amber-400 shadow-md shrink-0 text-center">
         <!-- High-res QR visual representation -->
         <img 
-          src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data={{ request.build_absolute_uri }}" 
+          id="qr-img-source"
+          src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data={{ request.build_absolute_uri }}" 
           alt="QR Code for {{ app.app_name }}"
+          crossorigin="anonymous"
           class="w-28 h-28 object-contain"
         >
       </div>
-      <div class="space-y-1.5 text-center sm:text-left">
+      <div class="space-y-2 text-center sm:text-left w-full">
         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-bold text-amber-300">
           Direct Mobile Scan
         </span>
@@ -179,6 +193,23 @@
         <p class="text-[11px] text-stone-300 leading-snug">
           Open your phone's camera to download <strong>{{ app.app_name }}</strong> directly without cables or typing links.
         </p>
+
+        <!-- Download QR Code Button -->
+        <div class="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+          <button 
+            type="button" 
+            onclick="downloadAppQrCodeImage()"
+            id="btn-download-qr-badge"
+            class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            title="Download QR code image with app name, version, and short details"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span id="btn-download-qr-badge-text">Download QR Code Image</span>
+          </button>
+          <span class="text-[10px] text-stone-400">Includes Name, Version & Details</span>
+        </div>
       </div>
     </div>
 
@@ -535,6 +566,270 @@
   function handleFinalInstallClick() {
     const textEl = document.getElementById('dl-install-btn-text');
     textEl.textContent = 'APK Downloading · Tap to Install';
+  }
+
+  async function downloadAppQrCodeImage() {
+    const btnText = document.getElementById('btn-download-qr-badge-text');
+    const originalText = btnText ? btnText.textContent : 'Download QR Code Image';
+    if (btnText) btnText.textContent = 'Generating Image...';
+
+    try {
+      const width = 760;
+      const height = 1040;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      function roundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+
+      // Background Gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+      bgGrad.addColorStop(0, '#1c130c');
+      bgGrad.addColorStop(0.35, '#120d09');
+      bgGrad.addColorStop(1, '#080605');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Gold Glow behind QR
+      const glow = ctx.createRadialGradient(width / 2, 530, 40, width / 2, 530, 260);
+      glow.addColorStop(0, 'rgba(245, 158, 11, 0.16)');
+      glow.addColorStop(1, 'rgba(245, 158, 11, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 300, width, 480);
+
+      // Card Borders
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#f59e0b';
+      roundRect(16, 16, width - 32, height - 32, 28);
+      ctx.stroke();
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.25)';
+      roundRect(24, 24, width - 48, height - 48, 22);
+      ctx.stroke();
+
+      // Top branding pill
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+      roundRect(width / 2 - 130, 44, 260, 34, 17);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+      ctx.lineWidth = 1.5;
+      roundRect(width / 2 - 130, 44, 260, 34, 17);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★  HADI88 APPS STORE  ★', width / 2, 66);
+
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.fillText('VERIFIED ANDROID PACKAGE · VIRUSTOTAL 0/74 CLEAN', width / 2, 102);
+
+      // App Header Info
+      const iconSize = 96;
+      const iconX = 48;
+      const iconY = 126;
+
+      const iconUrl = '{{ app.safe_icon_url|escapejs }}';
+      let iconDrawn = false;
+      if (iconUrl) {
+        try {
+          const iconImg = new Image();
+          iconImg.crossOrigin = 'anonymous';
+          await new Promise((res) => {
+            iconImg.onload = () => {
+              ctx.save();
+              roundRect(iconX, iconY, iconSize, iconSize, 20);
+              ctx.clip();
+              ctx.drawImage(iconImg, iconX, iconY, iconSize, iconSize);
+              ctx.restore();
+              iconDrawn = true;
+              res();
+            };
+            iconImg.onerror = () => res();
+            iconImg.src = iconUrl;
+          });
+        } catch(e) {}
+      }
+      if (!iconDrawn) {
+        const iconGrad = ctx.createLinearGradient(iconX, iconY, iconX + iconSize, iconY + iconSize);
+        iconGrad.addColorStop(0, '#f59e0b');
+        iconGrad.addColorStop(1, '#b45309');
+        ctx.fillStyle = iconGrad;
+        roundRect(iconX, iconY, iconSize, iconSize, 20);
+        ctx.fill();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 44px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('{{ app.app_name|slice:":1"|upper|escapejs }}', iconX + iconSize / 2, iconY + 66);
+      }
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2.5;
+      roundRect(iconX, iconY, iconSize, iconSize, 20);
+      ctx.stroke();
+
+      // App Name, Version & Details
+      const textX = iconX + iconSize + 20;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 26px system-ui, sans-serif';
+      const appName = '{{ app.app_name|escapejs }}';
+      ctx.fillText(appName.length > 24 ? appName.slice(0, 24) + '...' : appName, textX, 156);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.fillText('by {{ app.developer_name|escapejs }}', textX, 180);
+
+      // Version badge
+      const vText = 'v{{ app.version|escapejs }}';
+      ctx.font = 'bold 12px system-ui, sans-serif';
+      const vWidth = ctx.measureText(vText).width + 16;
+      ctx.fillStyle = '#f59e0b';
+      roundRect(textX, 192, vWidth, 24, 12);
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.fillText(vText, textX + 8, 209);
+
+      ctx.fillStyle = '#d6d3d1';
+      ctx.font = '500 12px system-ui, sans-serif';
+      ctx.fillText('{{ app.category|escapejs }}  •  {{ app.file_size|escapejs }}  •  ★ {{ app.rating|escapejs }}', textX + vWidth + 12, 209);
+
+      // QR Code Container (Center)
+      const qrBoxSize = 340;
+      const qrBoxX = (width - qrBoxSize) / 2;
+      const qrBoxY = 250;
+      ctx.fillStyle = '#ffffff';
+      roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24);
+      ctx.fill();
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3.5;
+      roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24);
+      ctx.stroke();
+
+      // Load QR Code from DOM img or qrserver
+      const qrDomImg = document.getElementById('qr-img-source');
+      const qrInnerSize = 290;
+      const qrInnerX = qrBoxX + (qrBoxSize - qrInnerSize) / 2;
+      const qrInnerY = qrBoxY + (qrBoxSize - qrInnerSize) / 2;
+
+      let qrDrawn = false;
+      if (qrDomImg && qrDomImg.complete && qrDomImg.naturalWidth > 0) {
+        try {
+          ctx.drawImage(qrDomImg, qrInnerX, qrInnerY, qrInnerSize, qrInnerSize);
+          qrDrawn = true;
+        } catch(e) {}
+      }
+
+      if (!qrDrawn) {
+        await new Promise((res) => {
+          const qrImg = new Image();
+          qrImg.crossOrigin = 'anonymous';
+          qrImg.onload = () => {
+            ctx.drawImage(qrImg, qrInnerX, qrInnerY, qrInnerSize, qrInnerSize);
+            res();
+          };
+          qrImg.onerror = () => res();
+          qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(window.location.href);
+        });
+      }
+
+      // QR Labels
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 15px system-ui, sans-serif';
+      ctx.fillText('SCAN WITH PHONE CAMERA TO INSTALL', width / 2, qrBoxY + qrBoxSize + 36);
+
+      ctx.fillStyle = '#a8a29e';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText('Works with Android Camera, Google Lens & any QR Scanner', width / 2, qrBoxY + qrBoxSize + 56);
+
+      // Details Box
+      const detailY = qrBoxY + qrBoxSize + 76;
+      const detailW = width - 80;
+      const detailH = 190;
+      const detailX = 40;
+
+      ctx.fillStyle = 'rgba(23, 16, 11, 0.85)';
+      roundRect(detailX, detailY, detailW, detailH, 20);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
+      ctx.lineWidth = 1.5;
+      roundRect(detailX, detailY, detailW, detailH, 20);
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 13px system-ui, sans-serif';
+      ctx.fillText('APPLICATION HIGHLIGHTS & SHORT DETAILS', detailX + 20, detailY + 30);
+
+      ctx.fillStyle = '#e7e5e4';
+      ctx.font = '13px system-ui, sans-serif';
+      const shortDesc = '{{ app.description|truncatewords:24|escapejs }}'.replace(/\n+/g, ' ');
+      ctx.fillText(shortDesc, detailX + 20, detailY + 56);
+
+      // Feature tags
+      const tagList = ['✓  Direct APK Install', '✓  100% Virus-Free', '✓  Android 8.0+', '✓  No Account Needed'];
+      let tagX = detailX + 20;
+      const tagRowY = detailY + 115;
+      tagList.forEach(t => {
+        ctx.font = 'bold 11px system-ui, sans-serif';
+        const tw = ctx.measureText(t).width;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        roundRect(tagX, tagRowY, tw + 16, 26, 13);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.2)';
+        ctx.lineWidth = 1;
+        roundRect(tagX, tagRowY, tw + 16, 26, 13);
+        ctx.stroke();
+        ctx.fillStyle = '#34d399';
+        ctx.fillText(t, tagX + 8, tagRowY + 17);
+        tagX += tw + 20;
+      });
+
+      ctx.fillStyle = '#78716c';
+      ctx.font = '11px monospace';
+      ctx.fillText('Package: {{ app.package_name|escapejs }}  •  Binary: Direct Download', detailX + 20, detailY + 168);
+
+      // Footer
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#78716c';
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.fillText('Find and ask for your dreaming apps  •  Hadi88 Apps Store', width / 2, height - 42);
+
+      // Trigger download
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.download = '{{ app.app_name|slugify }}_v{{ app.version|slugify }}_QRCode.png';
+      a.href = dataUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      if (btnText) btnText.textContent = '✓ QR Image Downloaded!';
+      setTimeout(() => {
+        if (btnText) btnText.textContent = originalText;
+      }, 3000);
+    } catch(err) {
+      console.error('Failed to download QR code image:', err);
+      if (btnText) btnText.textContent = originalText;
+    }
   }
 </script>
 {% endblock %}

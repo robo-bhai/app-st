@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { 
   X, Star, Download, ShieldCheck, ArrowLeft, Check, 
-  ExternalLink, PackageCheck, Share2, QrCode, MessageSquare 
+  ExternalLink, PackageCheck, Share2, QrCode, MessageSquare,
+  ImageDown, Loader2
 } from 'lucide-react';
 import { AppModel, AppReview } from '../types/app';
 import { SafetyBadge } from './SafetyBadge';
 import { DirectDownloadQRCode } from './DirectDownloadQRCode';
 import { ReviewsSection } from './ReviewsSection';
 import { resolveAppIcon, handleImageFallback, resolveBannerImage } from '../utils/imageUtils';
+import { downloadAppQrCodeCard } from '../utils/qrCardGenerator';
 
 interface AppDetailModalProps {
   app: AppModel;
@@ -29,6 +31,8 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'qr-download' | 'safety' | 'reviews'>('overview');
+  const [isDownloadingQr, setIsDownloadingQr] = useState(false);
+  const [qrDownloaded, setQrDownloaded] = useState(false);
 
   const relatedApps = allApps
     .filter((a) => a.category === app.category && a.id !== app.id)
@@ -36,6 +40,24 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
 
   const handleDownloadClick = () => {
     onDownloadApk(app);
+  };
+
+  const handleDownloadQrCardDirect = async () => {
+    if (isDownloadingQr) return;
+    setIsDownloadingQr(true);
+    setQrDownloaded(false);
+    try {
+      const directUrl = app.binary_link || `/apks/${app.apk_file || `${app.package_name}.apk`}`;
+      const success = await downloadAppQrCodeCard(app, null, directUrl);
+      if (success) {
+        setQrDownloaded(true);
+        setTimeout(() => setQrDownloaded(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to download QR code card:', err);
+    } finally {
+      setIsDownloadingQr(false);
+    }
   };
 
   const handleShare = () => {
@@ -122,11 +144,11 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
             </div>
 
             {/* Direct Install CTA */}
-            <div className="w-full sm:w-auto flex flex-row sm:flex-col gap-2 shrink-0">
+            <div className="w-full sm:w-auto flex flex-col gap-2 shrink-0">
               <button
                 onClick={handleDownloadClick}
                 disabled={downloadProgress !== null}
-                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md ${
+                className={`w-full px-4 sm:px-6 py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer ${
                   downloadProgress === 100
                     ? 'bg-emerald-500 text-black shadow-emerald-500/30'
                     : downloadProgress !== null
@@ -152,14 +174,48 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 )}
               </button>
 
-              <button
-                onClick={() => setActiveTab('qr-download')}
-                className="px-3 py-2 rounded-xl border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                title="Scan QR Code on mobile"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">QR Mobile Download</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-center gap-1.5 w-full">
+                <button
+                  type="button"
+                  onClick={handleDownloadQrCardDirect}
+                  disabled={isDownloadingQr}
+                  className={`w-full sm:flex-1 px-3 py-2.5 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                    qrDownloaded
+                      ? 'bg-emerald-500 text-black border-emerald-400 shadow-emerald-500/20'
+                      : isDownloadingQr
+                      ? 'border-amber-500/50 bg-amber-500/20 text-amber-200 cursor-wait'
+                      : 'border-amber-400/60 bg-gradient-to-r from-amber-500/20 to-amber-600/30 hover:from-amber-500/30 hover:to-amber-600/40 text-amber-300 hover:text-white hover:border-amber-400'
+                  }`}
+                  title="Download image with QR code, app name, version, and short details"
+                >
+                  {qrDownloaded ? (
+                    <>
+                      <Check className="w-4 h-4 stroke-[3]" />
+                      <span>QR Image Downloaded!</span>
+                    </>
+                  ) : isDownloadingQr ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <span>Creating QR Image...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageDown className="w-4 h-4 text-amber-400" />
+                      <span>Download QR Code Image</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('qr-download')}
+                  className="w-full sm:w-auto px-3 py-2 rounded-xl border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="View Mobile QR Code Tab"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Scan QR</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -318,20 +374,39 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
               </div>
 
               {/* Direct QR Quick Card banner in overview */}
-              <div 
-                onClick={() => setActiveTab('qr-download')} 
-                className="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/5 border border-amber-500/20 flex items-center justify-between cursor-pointer hover:border-amber-400/40 transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
-                    <QrCode className="w-4 h-4" />
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-amber-600/10 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="p-2.5 rounded-xl bg-amber-500 text-black shadow-md shrink-0">
+                    <QrCode className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white">Want to install directly on your phone?</h4>
-                    <p className="text-[10px] text-stone-300">Scan QR Code from your camera to download APK immediately.</p>
+                    <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                      <span>Install on Mobile with QR Code</span>
+                      <span className="px-1.5 py-0.2 rounded text-[8px] bg-amber-500 text-black font-extrabold uppercase">Direct</span>
+                    </h4>
+                    <p className="text-[10px] sm:text-[11px] text-stone-300">Scan QR Code from camera or download image with app name & version.</p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-amber-400 underline shrink-0">Open QR →</span>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDownloadQrCardDirect}
+                    disabled={isDownloadingQr}
+                    className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <ImageDown className="w-3.5 h-3.5" />
+                    <span>Download QR Code</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('qr-download')}
+                    className="px-3 py-2 rounded-xl border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>View QR</span>
+                    <span>→</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -344,6 +419,7 @@ export const AppDetailModal: React.FC<AppDetailModalProps> = ({
                 apkUrl={app.binary_link || `/apks/${app.apk_file || `${app.package_name}.apk`}`}
                 apkFileName={app.apk_file || `${app.package_name}-v${app.version}.apk`}
                 size={160}
+                app={app}
               />
             </div>
           )}
